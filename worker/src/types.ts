@@ -4,6 +4,8 @@ export interface Env {
   GITHUB_PRIVATE_KEY: string;
   GITHUB_WEBHOOK_SECRET: string;
   ANTHROPIC_API_KEY: string;
+  GA4_MEASUREMENT_ID: string;
+  GA4_API_SECRET: string;
 }
 
 export interface ReviewComment {

@@ -282,6 +282,14 @@
       .review-card { padding: 20px; }
     }
   </style>
+  <!-- Firebase/GA4 Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KMBVLJT5BZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KMBVLJT5BZ');
+  </script>
 </head>
 <body>
 
@@ -294,6 +302,7 @@
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
+      <a href="/privacy.html">Privacy</a>
       <a href="https://github.com/apps/codesentri" class="btn btn-primary btn-sm">Install Free</a>
     </div>
   </div>
@@ -426,9 +435,29 @@
 
 <footer>
   <div class="container">
-    <p>&copy; 2026 CodeSentri by <a href="https://github.com/CrashBytes">CrashBytes</a>. Powered by Claude.</p>
+    <p>&copy; 2026 CodeSentri by <a href="https://github.com/CrashBytes">CrashBytes</a>. Powered by Claude. | <a href="/privacy.html">Privacy Policy</a></p>
   </div>
 </footer>
 
+  <script>
+    document.querySelectorAll('a[href*="github.com/apps/codesentri"]').forEach(function(link) {
+      link.addEventListener('click', function() {
+        var label = link.textContent.trim();
+        gtag('event', 'install_click', {
+          event_category: 'conversion',
+          event_label: label,
+          value: 1
+        });
+      });
+    });
+    document.querySelectorAll('a[href*="github.com/CrashBytes/codesentri"]').forEach(function(link) {
+      link.addEventListener('click', function() {
+        gtag('event', 'source_click', {
+          event_category: 'engagement',
+          event_label: 'View Source'
+        });
+      });
+    });
+  </script>
 </body>
 </html>

@@ -2,6 +2,7 @@ import type { Env } from './types.js';
 import { verifyWebhookSignature, getInstallationToken, githubAPI } from './github.js';
 import { reviewDiff } from './reviewer.js';
 import { checkUsage } from './usage.js';
+import { trackInstall, trackUninstall, trackReview, trackPlanChange } from './analytics.js';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -33,11 +34,16 @@ async function handleGitHubWebhook(request: Request, env: Env): Promise<Response
     return Response.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
+  const payload = JSON.parse(body);
+
+  if (event === 'installation') {
+    return handleInstallationEvent(payload, env);
+  }
+
   if (event !== 'pull_request') {
     return Response.json({ ok: true, skipped: 'not a PR event' });
   }
 
-  const payload = JSON.parse(body);
   const action = payload.action;
 
   if (action !== 'opened' && action !== 'synchronize') {
@@ -120,11 +126,50 @@ async function handleGitHubWebhook(request: Request, env: Env): Promise<Response
       `INSERT INTO reviews (installation_id, repo, pr_number, comments_count) VALUES (?, ?, ?, ?)`
     ).bind(installationId, repo.full_name, prNumber, comments.length).run();
 
+    trackReview(env, installationId, repo.full_name, comments.length);
+
     return Response.json({ ok: true, comments: comments.length });
   } catch (err: any) {
     console.error('Review failed:', err.message);
     return Response.json({ error: err.message }, { status: 500 });
   }
+}
+
+async function handleInstallationEvent(payload: any, env: Env): Promise<Response> {
+  const action = payload.action;
+  const installation = payload.installation;
+  const account = installation?.account;
+
+  if (!account) {
+    return Response.json({ ok: true, skipped: 'no account' });
+  }
+
+  const installationId = installation.id;
+  const accountLogin = account.login;
+  const accountType = account.type;
+
+  if (action === 'created') {
+    await env.DB.prepare(
+      `INSERT INTO installations (installation_id, account_login, account_type, plan)
+       VALUES (?, ?, ?, 'free')
+       ON CONFLICT (installation_id) DO UPDATE SET
+         account_login = excluded.account_login,
+         updated_at = datetime('now')`
+    ).bind(installationId, accountLogin, accountType).run();
+
+    trackInstall(env, accountLogin, accountType, installationId);
+    console.log(`App installed: ${accountLogin} (${accountType})`);
+  } else if (action === 'deleted') {
+    await env.DB.prepare(
+      `UPDATE installations SET plan = 'free', updated_at = datetime('now')
+       WHERE installation_id = ?`
+    ).bind(installationId).run();
+
+    trackUninstall(env, accountLogin, installationId);
+    console.log(`App uninstalled: ${accountLogin}`);
+  }
+
+  return Response.json({ ok: true, action });
 }
 
 async function handleMarketplaceWebhook(request: Request, env: Env): Promise<Response> {
@@ -148,6 +193,7 @@ async function handleMarketplaceWebhook(request: Request, env: Env): Promise<Res
            account_login = excluded.account_login,
            updated_at = datetime('now')`
       ).bind(account.id, account.login, account.type, plan).run();
+      trackPlanChange(env, account.login, plan, action);
       break;
     }
 
@@ -156,6 +202,7 @@ async function handleMarketplaceWebhook(request: Request, env: Env): Promise<Res
         `UPDATE installations SET plan = 'free', updated_at = datetime('now')
          WHERE installation_id = ?`
       ).bind(account.id).run();
+      trackPlanChange(env, account.login, 'free', 'cancelled');
       break;
     }
   }
