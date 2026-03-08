@@ -1,0 +1,11 @@
+name = "codesentri"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+GITHUB_APP_ID = "3035434"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "codesentri"
+database_id = "ec0c8e1b-5014-4311-b931-9d8d9ef8cc75"
