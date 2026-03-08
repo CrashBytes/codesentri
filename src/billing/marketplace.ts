@@ -18,7 +18,7 @@ interface MarketplacePayload {
   };
 }
 
-function planFromMarketplace(planName: string): string {
+export function planFromMarketplace(planName: string): string {
   const normalized = planName.toLowerCase();
   if (normalized.includes('team')) return 'team';
   if (normalized.includes('pro')) return 'pro';

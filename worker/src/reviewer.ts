@@ -83,7 +83,7 @@ Analyze the diff and return a JSON array of review comments. If no issues are fo
   return parseResponse(text);
 }
 
-function parseResponse(text: string): ReviewComment[] {
+export function parseResponse(text: string): ReviewComment[] {
   try {
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return [];

@@ -163,7 +163,7 @@ async function handleMarketplaceWebhook(request: Request, env: Env): Promise<Res
   return Response.json({ ok: true });
 }
 
-function formatComment(comment: { severity: string; title: string; message: string; suggestion?: string }): string {
+export function formatComment(comment: { severity: string; title: string; message: string; suggestion?: string }): string {
   const severityLabel = {
     critical: '[CRITICAL]',
     warning: '[WARNING]',
