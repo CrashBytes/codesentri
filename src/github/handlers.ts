@@ -10,6 +10,7 @@ interface PRPayload {
   pull_request: {
     number: number;
     head: { sha: string };
+    user: { login?: string; type?: string } | null;
   };
   repository: {
     name: string;
@@ -26,17 +27,37 @@ export async function handlePullRequest(payload: PRPayload) {
     return;
   }
 
+  // Skip bot-generated PRs (Dependabot, Renovate, etc.)
+  if (pr.user?.type === 'Bot') {
+    logger.info({ user: pr.user.login }, 'Skipping bot PR');
+    return;
+  }
+
   const owner = repository.owner.login;
   const repo = repository.name;
   const prNumber = pr.number;
 
-  const allowed = await checkUsage(installation.id);
-  if (!allowed) {
+  const planConfig = await checkUsage(installation.id);
+  if (!planConfig) {
     logger.info({ installationId: installation.id }, 'Usage limit reached, skipping review');
     return;
   }
 
   const octokit = await getInstallationOctokit(installation.id);
+
+  // Fetch changed files for context
+  const { data: files } = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
+    owner,
+    repo,
+    pull_number: prNumber,
+  });
+
+  // Skip PRs with too many files for this plan
+  if (files.length > planConfig.maxFiles) {
+    logger.info({ owner, repo, prNumber, filesChanged: files.length, maxFiles: planConfig.maxFiles },
+      'Too many files, skipping review');
+    return;
+  }
 
   // Fetch the PR diff
   const { data: diff } = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
@@ -46,16 +67,9 @@ export async function handlePullRequest(payload: PRPayload) {
     mediaType: { format: 'diff' },
   });
 
-  // Fetch changed files for context
-  const { data: files } = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}/files', {
-    owner,
-    repo,
-    pull_number: prNumber,
-  });
-
   logger.info({ owner, repo, prNumber, filesChanged: files.length }, 'Analyzing PR');
 
-  const comments = await reviewDiff(diff as unknown as string, files);
+  const comments = await reviewDiff(diff as unknown as string, files, planConfig.model, planConfig.maxDiffSize);
 
   if (comments.length === 0) {
     logger.info({ owner, repo, prNumber }, 'No issues found');

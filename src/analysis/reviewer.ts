@@ -32,16 +32,16 @@ Respond with a JSON array of review comments. Each comment must have:
 
 Respond ONLY with the JSON array, no other text.`;
 
-export async function reviewDiff(diff: string, files: FileChange[]): Promise<ReviewComment[]> {
-  if (diff.length > 100_000) {
-    logger.warn({ diffLength: diff.length }, 'Diff too large, truncating');
-    diff = diff.slice(0, 100_000) + '\n... (truncated)';
+export async function reviewDiff(diff: string, files: FileChange[], model = 'claude-haiku-4-5-20251001', maxDiffSize = 30_000): Promise<ReviewComment[]> {
+  if (diff.length > maxDiffSize) {
+    logger.warn({ diffLength: diff.length, maxDiffSize }, 'Diff too large, truncating');
+    diff = diff.slice(0, maxDiffSize) + '\n... (truncated)';
   }
 
   const prompt = buildReviewPrompt(diff, files);
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model,
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
     system: SYSTEM_PROMPT,
