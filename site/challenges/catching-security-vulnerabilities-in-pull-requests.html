@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catching Security Vulnerabilities in Pull Requests - CodeSentri</title>
+  <meta name="description" content="Learn how to catch SQL injection, XSS, and OWASP Top 10 vulnerabilities in pull requests before they reach production. Practical strategies and automated solutions.">
+  <link rel="canonical" href="https://codesentri.com/challenges/catching-security-vulnerabilities-in-pull-requests">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="CodeSentri">
+  <meta property="og:title" content="Catching Security Vulnerabilities in Pull Requests">
+  <meta property="og:description" content="Learn how to catch SQL injection, XSS, and OWASP Top 10 vulnerabilities in pull requests before they reach production.">
+  <meta property="og:image" content="https://codesentri.com/logo.jpg">
+  <meta property="og:url" content="https://codesentri.com/challenges/catching-security-vulnerabilities-in-pull-requests">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Catching Security Vulnerabilities in Pull Requests">
+  <meta name="twitter:description" content="Learn how to catch SQL injection, XSS, and OWASP Top 10 vulnerabilities in pull requests before they reach production.">
+  <meta name="twitter:image" content="https://codesentri.com/logo.jpg">
+  <meta name="keywords" content="security vulnerabilities, pull request review, SQL injection, XSS, OWASP Top 10, code review security, secure code review">
+  <link rel="icon" href="/logo.jpg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Catching Security Vulnerabilities in Pull Requests",
+    "description": "Learn how to catch SQL injection, XSS, and OWASP Top 10 vulnerabilities in pull requests before they reach production.",
+    "author": { "@type": "Organization", "name": "CodeSentri" },
+    "publisher": { "@type": "Organization", "name": "CodeSentri", "logo": { "@type": "ImageObject", "url": "https://codesentri.com/logo.jpg" } },
+    "datePublished": "2026-03-09",
+    "image": "https://codesentri.com/logo.jpg"
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e17;
+      --surface: #111827;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.15);
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    nav { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .logo img { width: 36px; height: 36px; border-radius: 8px; }
+    .nav-links { display: flex; gap: 32px; align-items: center; }
+    .nav-links a { color: var(--text-muted); font-size: 0.95rem; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); text-decoration: none; }
+
+    .article { max-width: 760px; margin: 0 auto; padding: 80px 24px; }
+    .article h1 { font-size: 2.5rem; font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+    .article .subtitle { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 48px; }
+    .article h2 { font-size: 1.5rem; font-weight: 700; margin: 48px 0 16px; }
+    .article h3 { font-size: 1.15rem; font-weight: 600; margin: 32px 0 12px; }
+    .article p { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 16px; line-height: 1.7; }
+    .article ul, .article ol { color: var(--text-muted); font-size: 1.05rem; margin: 0 0 16px 24px; line-height: 1.8; }
+    .article li { margin-bottom: 8px; }
+    .article code { background: var(--surface); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: var(--accent); }
+    .article pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 16px 0 24px; overflow-x: auto; }
+    .article pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 0.9rem; line-height: 1.6; }
+
+    .challenge-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin: 24px 0; }
+    .challenge-card h3 { margin-top: 0; color: var(--text); }
+    .challenge-card p { margin-bottom: 0; }
+
+    .cta-box { background: var(--accent-glow); border: 1px solid var(--accent); border-radius: 12px; padding: 40px; text-align: center; margin: 48px 0; }
+    .cta-box h2 { color: var(--text); margin: 0 0 12px; }
+    .cta-box p { color: var(--text-muted); margin-bottom: 24px; }
+
+    .breadcrumb { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 32px; }
+    .breadcrumb a { color: var(--text-muted); }
+    .breadcrumb a:hover { color: var(--accent); }
+
+    footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+    footer a { color: var(--text-muted); }
+    @media (max-width: 640px) {
+      .article h1 { font-size: 1.75rem; }
+      .article { padding: 40px 16px; }
+    }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KMBVLJT5BZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KMBVLJT5BZ');
+  </script>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/" class="logo">
+      <img src="/logo.jpg" alt="CodeSentri">
+      CodeSentri
+    </a>
+    <div class="nav-links">
+      <a href="/#features">Features</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="https://github.com/apps/codesentri" class="btn btn-primary btn-sm">Install Free</a>
+    </div>
+  </div>
+</nav>
+
+<div class="article">
+  <div class="breadcrumb"><a href="/">Home</a> / <a href="/challenges/">Challenges</a> / Security Vulnerabilities</div>
+
+  <h1>Catching Security Vulnerabilities in Pull Requests</h1>
+  <p class="subtitle">Security flaws are among the most expensive bugs to fix after deployment. Here's how to catch them during code review, before they become incidents.</p>
+
+  <h2>The Problem</h2>
+  <p>Security vulnerabilities are uniquely dangerous because they often look like normal, working code. A SQL query that concatenates user input works perfectly in testing. An API endpoint that skips authorization still returns the right data. These issues pass functional tests, pass visual inspection, and ship to production where they become attack vectors.</p>
+  <p>The OWASP Foundation estimates that fixing a vulnerability in production costs 30x more than catching it during development. And the reputational damage from a breach is incalculable.</p>
+
+  <h2>Common Vulnerabilities That Slip Through Review</h2>
+
+  <div class="challenge-card">
+    <h3>1. SQL Injection</h3>
+    <p>String concatenation or template literals in database queries allow attackers to execute arbitrary SQL. This is the most common and most dangerous vulnerability in web applications.</p>
+  </div>
+  <pre><code>// Vulnerable - user input directly in query
+const query = `SELECT * FROM users WHERE name = '${userInput}'`;
+
+// Safe - parameterized query
+const query = 'SELECT * FROM users WHERE name = $1';
+const result = await db.query(query, [userInput]);</code></pre>
+
+  <div class="challenge-card">
+    <h3>2. Cross-Site Scripting (XSS)</h3>
+    <p>Rendering unsanitized user input as HTML lets attackers inject scripts that steal cookies, redirect users, or deface pages. Stored XSS is especially dangerous because it affects every user who views the page.</p>
+  </div>
+  <pre><code>// Vulnerable - raw HTML insertion
+element.innerHTML = userComment;
+
+// Safe - use textContent or sanitize
+element.textContent = userComment;</code></pre>
+
+  <div class="challenge-card">
+    <h3>3. Broken Authentication</h3>
+    <p>Missing authorization checks on API endpoints, hardcoded secrets, weak token generation, and improper session handling. These are easy to introduce when adding new endpoints by copying existing ones and forgetting the auth middleware.</p>
+  </div>
+
+  <div class="challenge-card">
+    <h3>4. Sensitive Data Exposure</h3>
+    <p>Logging sensitive data, returning full database records (including password hashes) in API responses, committing API keys or credentials, and sending sensitive data over unencrypted channels.</p>
+  </div>
+
+  <div class="challenge-card">
+    <h3>5. Insecure Dependencies</h3>
+    <p>Using outdated packages with known CVEs, or pulling in new dependencies without auditing their security posture. Supply chain attacks are on the rise.</p>
+  </div>
+
+  <h2>Why Manual Review Isn't Enough</h2>
+  <p>Even experienced reviewers miss security vulnerabilities for several reasons:</p>
+  <ul>
+    <li><strong>Context switching</strong> — Reviewers focus on logic and functionality, not adversarial thinking. Security requires a different mindset.</li>
+    <li><strong>Volume</strong> — In a busy team, reviewers skim large PRs. A single vulnerable line in a 500-line diff is easy to overlook.</li>
+    <li><strong>Knowledge gaps</strong> — Not every developer is a security expert. Junior developers may not recognize common vulnerability patterns.</li>
+    <li><strong>Review fatigue</strong> — The 10th PR of the day gets less scrutiny than the first.</li>
+  </ul>
+
+  <h2>How to Overcome This Challenge</h2>
+
+  <h3>Build a security review checklist</h3>
+  <p>Create a checklist your team uses on every PR that touches user input, database queries, authentication, or API endpoints. Include checks for:</p>
+  <ul>
+    <li>All user inputs are validated and sanitized</li>
+    <li>Database queries use parameterized statements</li>
+    <li>API endpoints have proper authorization checks</li>
+    <li>No secrets or credentials in the code</li>
+    <li>Error messages don't leak internal details</li>
+    <li>Dependencies are up-to-date and audited</li>
+  </ul>
+
+  <h3>Shift security left with automated tools</h3>
+  <p>Static analysis tools (SAST) can catch common patterns, but they generate noise. AI-powered code review tools like CodeSentri understand context, reducing false positives while catching subtle vulnerabilities that pattern matching misses.</p>
+
+  <h3>Adopt a "security champion" role</h3>
+  <p>Designate one developer per team as the security champion. They don't review every PR, but they're the go-to for security-sensitive changes and they keep the team's security knowledge current.</p>
+
+  <h3>Automate what you can</h3>
+  <p>The best security review is one that happens automatically on every PR, never gets tired, and catches the same vulnerability patterns consistently. This is where AI code review tools shine — they provide a security-focused second opinion on every change, instantly.</p>
+
+  <div class="cta-box">
+    <h2>Catch vulnerabilities before they ship</h2>
+    <p>CodeSentri reviews every pull request for SQL injection, XSS, auth issues, and OWASP Top 10 violations. Inline comments with severity levels and suggested fixes.</p>
+    <a href="https://github.com/apps/codesentri" class="btn btn-primary">Install Free on GitHub</a>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2026 CodeSentri by <a href="https://github.com/CrashBytes">CrashBytes</a>. Powered by Claude. | <a href="/privacy.html">Privacy</a> | <a href="/terms.html">Terms</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

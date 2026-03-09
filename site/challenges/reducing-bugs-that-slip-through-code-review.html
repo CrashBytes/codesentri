@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reducing Bugs That Slip Through Code Review - CodeSentri</title>
+  <meta name="description" content="Why do bugs still reach production after code review? Learn the common patterns reviewers miss and practical strategies to catch more bugs before they ship.">
+  <link rel="canonical" href="https://codesentri.com/challenges/reducing-bugs-that-slip-through-code-review">
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="CodeSentri">
+  <meta property="og:title" content="Reducing Bugs That Slip Through Code Review">
+  <meta property="og:description" content="Why do bugs still reach production after code review? Learn the common patterns reviewers miss and strategies to catch more bugs.">
+  <meta property="og:image" content="https://codesentri.com/logo.jpg">
+  <meta property="og:url" content="https://codesentri.com/challenges/reducing-bugs-that-slip-through-code-review">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Reducing Bugs That Slip Through Code Review">
+  <meta name="twitter:description" content="Why do bugs still reach production after code review? Learn the common patterns reviewers miss and strategies to catch more bugs.">
+  <meta name="twitter:image" content="https://codesentri.com/logo.jpg">
+  <meta name="keywords" content="bugs in production, code review bugs, off-by-one error, null pointer, race condition, code review effectiveness, bug prevention">
+  <link rel="icon" href="/logo.jpg">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Reducing Bugs That Slip Through Code Review",
+    "description": "Why do bugs still reach production after code review? Learn the common patterns reviewers miss and practical strategies to catch more bugs.",
+    "author": { "@type": "Organization", "name": "CodeSentri" },
+    "publisher": { "@type": "Organization", "name": "CodeSentri", "logo": { "@type": "ImageObject", "url": "https://codesentri.com/logo.jpg" } },
+    "datePublished": "2026-03-09",
+    "image": "https://codesentri.com/logo.jpg"
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e17;
+      --surface: #111827;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #06b6d4;
+      --accent-glow: rgba(6, 182, 212, 0.15);
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    nav { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    nav .container { display: flex; justify-content: space-between; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .logo img { width: 36px; height: 36px; border-radius: 8px; }
+    .nav-links { display: flex; gap: 32px; align-items: center; }
+    .nav-links a { color: var(--text-muted); font-size: 0.95rem; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-primary:hover { opacity: 0.9; text-decoration: none; }
+
+    .article { max-width: 760px; margin: 0 auto; padding: 80px 24px; }
+    .article h1 { font-size: 2.5rem; font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+    .article .subtitle { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 48px; }
+    .article h2 { font-size: 1.5rem; font-weight: 700; margin: 48px 0 16px; }
+    .article h3 { font-size: 1.15rem; font-weight: 600; margin: 32px 0 12px; }
+    .article p { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 16px; line-height: 1.7; }
+    .article ul, .article ol { color: var(--text-muted); font-size: 1.05rem; margin: 0 0 16px 24px; line-height: 1.8; }
+    .article li { margin-bottom: 8px; }
+    .article code { background: var(--surface); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: var(--accent); }
+    .article pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin: 16px 0 24px; overflow-x: auto; }
+    .article pre code { background: none; border: none; padding: 0; color: var(--text); font-size: 0.9rem; line-height: 1.6; }
+
+    .challenge-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin: 24px 0; }
+    .challenge-card h3 { margin-top: 0; color: var(--text); }
+    .challenge-card p { margin-bottom: 0; }
+
+    .cta-box { background: var(--accent-glow); border: 1px solid var(--accent); border-radius: 12px; padding: 40px; text-align: center; margin: 48px 0; }
+    .cta-box h2 { color: var(--text); margin: 0 0 12px; }
+    .cta-box p { color: var(--text-muted); margin-bottom: 24px; }
+
+    .breadcrumb { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 32px; }
+    .breadcrumb a { color: var(--text-muted); }
+    .breadcrumb a:hover { color: var(--accent); }
+
+    footer { padding: 40px 0; border-top: 1px solid var(--border); text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+    footer a { color: var(--text-muted); }
+    @media (max-width: 640px) {
+      .article h1 { font-size: 1.75rem; }
+      .article { padding: 40px 16px; }
+    }
+  </style>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KMBVLJT5BZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KMBVLJT5BZ');
+  </script>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/" class="logo">
+      <img src="/logo.jpg" alt="CodeSentri">
+      CodeSentri
+    </a>
+    <div class="nav-links">
+      <a href="/#features">Features</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="https://github.com/apps/codesentri" class="btn btn-primary btn-sm">Install Free</a>
+    </div>
+  </div>
+</nav>
+
+<div class="article">
+  <div class="breadcrumb"><a href="/">Home</a> / <a href="/challenges/">Challenges</a> / Reducing Bugs</div>
+
+  <h1>Reducing Bugs That Slip Through Code Review</h1>
+  <p class="subtitle">Your team does code review on every PR. So why do bugs still reach production? The problem isn't effort — it's the limits of human attention.</p>
+
+  <h2>The Problem</h2>
+  <p>Studies show that code review catches only 60-70% of defects on average. That means roughly 1 in 3 bugs makes it past review. For a team shipping 50 PRs per week, that's a lot of defects reaching production.</p>
+  <p>The bugs that slip through aren't random. They follow predictable patterns — the same categories of defects that human reviewers consistently overlook.</p>
+
+  <h2>Bug Patterns That Reviewers Miss</h2>
+
+  <div class="challenge-card">
+    <h3>1. Off-by-one errors</h3>
+    <p>The classic: using <code>&lt;=</code> instead of <code>&lt;</code>, or starting at index 1 instead of 0. These look correct at a glance and pass most tests, but fail on edge cases.</p>
+  </div>
+  <pre><code>// Bug: accesses index beyond array bounds
+for (let i = 0; i <= items.length; i++) {
+  process(items[i]); // undefined on last iteration
+}
+
+// Fixed: use strict less-than
+for (let i = 0; i < items.length; i++) {
+  process(items[i]);
+}</code></pre>
+
+  <div class="challenge-card">
+    <h3>2. Missing null/undefined checks</h3>
+    <p>Accessing properties on values that might be null. The code works in the happy path, crashes in production when data is missing or an API returns an unexpected response.</p>
+  </div>
+  <pre><code>// Bug: user.address could be null
+const city = user.address.city;
+
+// Fixed: optional chaining with fallback
+const city = user.address?.city ?? 'Unknown';</code></pre>
+
+  <div class="challenge-card">
+    <h3>3. Race conditions and async bugs</h3>
+    <p>Missing <code>await</code> on async functions, shared state accessed concurrently, or operations that depend on timing. These bugs are intermittent, making them incredibly hard to reproduce and diagnose.</p>
+  </div>
+  <pre><code>// Bug: missing await, data is a Promise not the actual value
+const data = response.json();
+console.log(data.name); // undefined
+
+// Fixed: await the async operation
+const data = await response.json();
+console.log(data.name);</code></pre>
+
+  <div class="challenge-card">
+    <h3>4. Error handling gaps</h3>
+    <p>Missing try-catch blocks, swallowed exceptions, unhandled promise rejections, and error callbacks that ignore the error parameter. These don't cause visible bugs until something goes wrong — then they cause cascading failures with no useful error messages.</p>
+  </div>
+
+  <div class="challenge-card">
+    <h3>5. Logic errors in conditionals</h3>
+    <p>Inverted conditions, incorrect boolean logic, and missing else branches. Reviewers often read what they expect to see rather than what's actually written.</p>
+  </div>
+  <pre><code>// Bug: inverted condition, deletes active users instead of inactive
+if (user.isActive) {
+  deleteUser(user.id);
+}
+
+// Fixed: negate the condition
+if (!user.isActive) {
+  deleteUser(user.id);
+}</code></pre>
+
+  <h2>Why Human Reviewers Miss These</h2>
+  <p>It's not about skill — it's about how human attention works:</p>
+  <ul>
+    <li><strong>Pattern matching bias</strong> — Our brains complete patterns automatically. We see <code>i &lt;= length</code> and read it as "loop through all items" without noticing the off-by-one.</li>
+    <li><strong>Happy path focus</strong> — Reviewers naturally trace the expected execution flow. Edge cases, error paths, and null states require deliberate effort to consider.</li>
+    <li><strong>Review fatigue</strong> — Attention declines after 200-400 lines of code. Studies show defect detection drops significantly in longer review sessions.</li>
+    <li><strong>Familiarity blindness</strong> — Common code patterns look "right" even when they're not. A missing <code>await</code> on a function call looks identical to a correct synchronous call.</li>
+  </ul>
+
+  <h2>How to Overcome This Challenge</h2>
+
+  <h3>Add automated checks to your pipeline</h3>
+  <p>TypeScript's strict mode, ESLint rules, and static analysis tools catch entire categories of bugs automatically. Enable strict null checks, no-unused-variables, and exhaustive switch statements. These are free wins that require no human attention.</p>
+
+  <h3>Write tests for edge cases first</h3>
+  <p>Before reviewing logic, check that tests cover boundary conditions: empty arrays, null inputs, maximum values, concurrent access. If edge cases aren't tested, they're probably broken.</p>
+
+  <h3>Review in small chunks</h3>
+  <p>Research shows optimal review sessions are 200-400 lines at a time, for no more than 60 minutes. Anything beyond that and defect detection drops sharply. Break long reviews into multiple sessions.</p>
+
+  <h3>Use a checklist for common bugs</h3>
+  <p>Keep a running list of bug patterns your team has shipped. Review each PR against this list. Common items: bounds checking, null safety, error handling, async correctness, and input validation.</p>
+
+  <h3>Layer AI review on top of human review</h3>
+  <p>AI code review excels at exactly the patterns humans miss. It doesn't get fatigued, doesn't skip edge cases, and checks every line with the same attention. Use it as a first pass to catch the mechanical bugs so human reviewers can focus on design and logic.</p>
+
+  <div class="cta-box">
+    <h2>Catch the bugs humans miss</h2>
+    <p>CodeSentri reviews every PR for off-by-one errors, null pointer risks, missing awaits, and logic errors. It catches the patterns that slip past tired eyes.</p>
+    <a href="https://github.com/apps/codesentri" class="btn btn-primary">Install Free on GitHub</a>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2026 CodeSentri by <a href="https://github.com/CrashBytes">CrashBytes</a>. Powered by Claude. | <a href="/privacy.html">Privacy</a> | <a href="/terms.html">Terms</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
