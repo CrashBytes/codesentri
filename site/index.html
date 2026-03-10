@@ -234,6 +234,77 @@
       margin-bottom: 12px;
     }
 
+    /* Comparison */
+    .compare { padding: 80px 0; }
+    .compare h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+    .compare .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+      font-size: 1.1rem;
+    }
+    .compare-table {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    .compare-table th,
+    .compare-table td {
+      padding: 16px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .compare-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .compare-table td:first-child {
+      color: var(--text-muted);
+    }
+    .compare-table .col-codesentri {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .compare-table .col-other {
+      color: var(--text-muted);
+    }
+    .compare-table .highlight-row td {
+      background: var(--accent-glow);
+    }
+    .callout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 800px;
+      margin: 48px auto 0;
+    }
+    .callout-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+    .callout-card .callout-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .callout-card .callout-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
     /* Pricing */
     .pricing { padding: 80px 0; }
     .pricing h2 {
@@ -316,6 +387,8 @@
       .hero h1 { font-size: 2.25rem; }
       .hero p { font-size: 1.05rem; }
       .review-card { padding: 20px; }
+      .compare-table th, .compare-table td { padding: 12px 10px; font-size: 0.85rem; }
+      .callout-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
   <!-- Firebase/GA4 Analytics -->
@@ -347,7 +420,7 @@
 <section class="hero">
   <div class="container">
     <h1>AI code reviews<br>on <span>every pull request</span></h1>
-    <p>CodeSentri catches bugs, security vulnerabilities, and anti-patterns before they reach production. Install in 30 seconds.</p>
+    <p>AI code reviews for $0&ndash;49/month, not $25 per PR. Catch bugs, security vulnerabilities, and anti-patterns before they reach production. Install in 30 seconds.</p>
     <div class="cta-group">
       <a href="https://github.com/apps/codesentri" class="btn btn-primary">Install on GitHub</a>
       <a href="https://github.com/CrashBytes/codesentri" class="btn btn-secondary">View Source</a>
@@ -418,6 +491,72 @@
         <div class="feature-icon">&#127919;</div>
         <h3>Actionable Suggestions</h3>
         <p>Every comment explains why it matters and includes a suggested code fix you can apply directly.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="compare" id="compare">
+  <div class="container">
+    <h2>Why CodeSentri over enterprise AI reviews?</h2>
+    <p class="subtitle">Same AI-powered code review. A fraction of the cost. No enterprise subscription required.</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="col-codesentri">CodeSentri</th>
+          <th class="col-other">Enterprise AI Review</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight-row">
+          <td>Cost per review</td>
+          <td class="col-codesentri">$0.00 &ndash; $0.10</td>
+          <td class="col-other">$15 &ndash; $25</td>
+        </tr>
+        <tr>
+          <td>Monthly price</td>
+          <td class="col-codesentri">Free / $19 / $49</td>
+          <td class="col-other">Enterprise subscription required</td>
+        </tr>
+        <tr>
+          <td>Free tier</td>
+          <td class="col-codesentri">5 reviews/month</td>
+          <td class="col-other">None</td>
+        </tr>
+        <tr>
+          <td>Setup</td>
+          <td class="col-codesentri">Install GitHub app, done</td>
+          <td class="col-other">Enterprise plan + admin config</td>
+        </tr>
+        <tr>
+          <td>GitLab support</td>
+          <td class="col-codesentri">Yes</td>
+          <td class="col-other">GitHub only</td>
+        </tr>
+        <tr>
+          <td>Best for</td>
+          <td class="col-codesentri">Solo devs, startups, small teams</td>
+          <td class="col-other">Large enterprise teams</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout-grid">
+      <div class="callout-card">
+        <div class="callout-number">$0</div>
+        <div class="callout-label">to get started</div>
+      </div>
+      <div class="callout-card">
+        <div class="callout-number">150x</div>
+        <div class="callout-label">cheaper per review on Pro</div>
+      </div>
+      <div class="callout-card">
+        <div class="callout-number">30 sec</div>
+        <div class="callout-label">setup time</div>
+      </div>
+      <div class="callout-card">
+        <div class="callout-number">0</div>
+        <div class="callout-label">enterprise contracts needed</div>
       </div>
     </div>
   </div>
