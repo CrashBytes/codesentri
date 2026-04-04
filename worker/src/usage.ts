@@ -58,10 +58,16 @@ export async function checkUsage(db: D1Database, installationId: number): Promis
   }
 
   // Increment usage AFTER all checks pass (not before review runs)
-  await db.prepare(
+  const result = await db.prepare(
     `UPDATE installations SET reviews_this_month = reviews_this_month + 1, updated_at = datetime('now')
      WHERE installation_id = ?`
   ).bind(installationId).run();
+
+  // Fail closed: if UPDATE affected 0 rows, the row disappeared between SELECT and UPDATE
+  if (!result.meta?.changes || result.meta.changes === 0) {
+    console.error(`Usage increment failed for installation ${installationId} — 0 rows updated`);
+    return null;
+  }
 
   return planConfig;
 }
