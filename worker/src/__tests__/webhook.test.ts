@@ -255,6 +255,8 @@ describe('GitHub webhook handler', () => {
 describe('Marketplace webhook handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Marketplace webhooks now verify signatures
+    vi.mocked(verifyWebhookSignature).mockResolvedValue(true);
   });
 
   it('handles purchased event', async () => {

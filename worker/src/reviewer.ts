@@ -58,11 +58,16 @@ Analyze the diff and return a JSON array of review comments. If no issues are fo
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'prompt-caching-2024-07-31',
     },
     body: JSON.stringify({
       model,
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: [{
+        type: 'text',
+        text: SYSTEM_PROMPT,
+        cache_control: { type: 'ephemeral' },
+      }],
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -73,7 +78,21 @@ Analyze the diff and return a JSON array of review comments. If no issues are fo
 
   const data = await resp.json() as {
     content: Array<{ type: string; text: string }>;
+    usage?: {
+      input_tokens: number;
+      output_tokens: number;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
   };
+
+  // Log token usage for cost tracking
+  if (data.usage) {
+    const u = data.usage;
+    const cached = u.cache_read_input_tokens || 0;
+    const created = u.cache_creation_input_tokens || 0;
+    console.log(`[tokens] model=${model} input=${u.input_tokens} output=${u.output_tokens} cache_read=${cached} cache_create=${created}`);
+  }
 
   const text = data.content
     .filter(block => block.type === 'text')
