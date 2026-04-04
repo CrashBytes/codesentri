@@ -54,6 +54,10 @@ describe('reviewDiff (worker)', () => {
     expect(Array.isArray(callBody.system)).toBe(true);
     expect(callBody.system[0].text).toContain('CodeSentri');
     expect(callBody.system[0].cache_control).toEqual({ type: 'ephemeral' });
+
+    // Verify prompt caching header is set
+    const callHeaders = (fetch as any).mock.calls[0][1].headers;
+    expect(callHeaders['anthropic-beta']).toBe('prompt-caching-2024-07-31');
   });
 
   it('truncates diff when exceeding maxDiffSize', async () => {

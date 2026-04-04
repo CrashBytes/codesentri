@@ -57,7 +57,9 @@ export async function checkUsage(db: D1Database, installationId: number): Promis
     }
   }
 
-  // Increment usage AFTER all checks pass (not before review runs)
+  // Increment usage after limit checks pass but before the review executes.
+  // This reserves the slot upfront — if the review later fails, the slot is still consumed.
+  // This is intentional: it prevents retry abuse and keeps accounting simple.
   const result = await db.prepare(
     `UPDATE installations SET reviews_this_month = reviews_this_month + 1, updated_at = datetime('now')
      WHERE installation_id = ?`

@@ -102,5 +102,19 @@ export async function verifyWebhookSignature(secret: string, payload: string, si
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
-  return expected === signature;
+  // Constant-time comparison to prevent timing side-channel attacks
+  if (expected.length !== signature.length) return false;
+  const a = encoder.encode(expected);
+  const b = encoder.encode(signature);
+  if (a.byteLength !== b.byteLength) return false;
+  // Use timingSafeEqual if available (Cloudflare Workers), fallback to byte-by-byte XOR
+  if (typeof crypto.subtle.timingSafeEqual === 'function') {
+    return crypto.subtle.timingSafeEqual(a, b);
+  }
+  // Constant-time fallback: XOR all bytes, check result is 0
+  let mismatch = 0;
+  for (let i = 0; i < a.byteLength; i++) {
+    mismatch |= a[i] ^ b[i];
+  }
+  return mismatch === 0;
 }

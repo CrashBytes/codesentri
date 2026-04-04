@@ -16,16 +16,22 @@ function createMockDB(options: {
   hourlyCount?: number;
 }) {
   const { installation = null, hourlyCount = 0 } = options;
-  let callCount = 0;
+  let firstCallCount = 0;
 
-  const run = vi.fn().mockResolvedValue({ success: true });
+  const run = vi.fn().mockResolvedValue({ success: true, meta: { changes: 1 } });
   const first = vi.fn().mockImplementation(() => {
-    callCount++;
-    // Call 1: reset expired (returns nothing, uses .run())
-    // Call 2: SELECT installation
-    if (callCount === 1) return Promise.resolve(installation);
-    // Call 3: SELECT hourly count
-    if (callCount === 2) return Promise.resolve({ count: hourlyCount });
+    firstCallCount++;
+    if (installation === null) {
+      // No installation: first SELECT returns null, second (after INSERT) returns the new row
+      if (firstCallCount === 1) return Promise.resolve(null);
+      if (firstCallCount === 2) return Promise.resolve({ plan: 'free', reviews_this_month: 0 });
+      if (firstCallCount === 3) return Promise.resolve({ count: hourlyCount });
+      return Promise.resolve(null);
+    }
+    // Has installation: first SELECT returns it
+    if (firstCallCount === 1) return Promise.resolve(installation);
+    // Hourly count check
+    if (firstCallCount === 2) return Promise.resolve({ count: hourlyCount });
     return Promise.resolve(null);
   });
 
@@ -40,11 +46,16 @@ describe('checkUsage', () => {
     vi.clearAllMocks();
   });
 
-  it('returns free plan config for unknown installation', async () => {
+  it('creates DB row and returns free plan for unknown installation', async () => {
     const db = createMockDB({ installation: null });
     const result = await checkUsage(db, 999);
     expect(result).not.toBeNull();
     expect(result!.limit).toBe(5);
+    // Should have called INSERT for the new row
+    const insertCall = db.prepare.mock.calls.find(
+      (c: any) => c[0].includes('INSERT INTO installations')
+    );
+    expect(insertCall).toBeDefined();
   });
 
   it('returns plan config when under limit', async () => {
@@ -80,7 +91,7 @@ describe('checkUsage', () => {
       hourlyCount: 5,
     });
     await checkUsage(db, 123);
-    // Should call prepare at least 4 times: reset, select install, hourly check, increment
+    // Should call prepare for: reset, select, hourly check, increment
     expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(4);
   });
 
@@ -90,5 +101,23 @@ describe('checkUsage', () => {
     // First prepare call should be the reset query
     expect(db.prepare.mock.calls[0][0]).toContain('UPDATE installations');
     expect(db.prepare.mock.calls[0][0]).toContain('reviews_this_month = 0');
+  });
+
+  it('fails closed if increment updates 0 rows', async () => {
+    const db = createMockDB({
+      installation: { plan: 'pro', reviews_this_month: 10 },
+      hourlyCount: 0,
+    });
+    // Override run to return 0 changes on the increment
+    db.prepare.mockReturnValue({
+      bind: vi.fn().mockReturnValue({
+        first: db.first,
+        run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 0 } }),
+      }),
+      run: vi.fn().mockResolvedValue({ success: true, meta: { changes: 0 } }),
+      first: db.first,
+    });
+    const result = await checkUsage(db, 123);
+    expect(result).toBeNull();
   });
 });
