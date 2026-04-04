@@ -1,6 +1,13 @@
 import type { PlanConfig } from './types.js';
 import { getPlanConfig } from './plans.js';
 
+/**
+ * Check usage limits and return plan config if review is allowed.
+ * Returns null if the installation has exceeded its limits.
+ *
+ * IMPORTANT: If no DB row exists for the installation, we create one
+ * (defaulting to 'free' plan) to ensure usage is always tracked.
+ */
 export async function checkUsage(db: D1Database, installationId: number): Promise<PlanConfig | null> {
   // Reset expired monthly counters
   await db.prepare(
@@ -10,12 +17,26 @@ export async function checkUsage(db: D1Database, installationId: number): Promis
      WHERE month_reset_at <= datetime('now')`
   ).run();
 
-  const installation = await db.prepare(
+  let installation = await db.prepare(
     'SELECT * FROM installations WHERE installation_id = ?'
   ).bind(installationId).first();
 
+  // If no DB row exists, create one so usage is tracked from the start
   if (!installation) {
-    return getPlanConfig('free');
+    await db.prepare(
+      `INSERT INTO installations (installation_id, account_login, account_type, plan, reviews_this_month)
+       VALUES (?, 'unknown', 'User', 'free', 0)
+       ON CONFLICT (installation_id) DO NOTHING`
+    ).bind(installationId).run();
+
+    installation = await db.prepare(
+      'SELECT * FROM installations WHERE installation_id = ?'
+    ).bind(installationId).first();
+
+    if (!installation) {
+      console.error(`Failed to create installation record for ${installationId}`);
+      return null; // Fail closed — don't allow review without tracking
+    }
   }
 
   const planConfig = getPlanConfig(installation.plan as string);
@@ -36,7 +57,7 @@ export async function checkUsage(db: D1Database, installationId: number): Promis
     }
   }
 
-  // Increment usage
+  // Increment usage AFTER all checks pass (not before review runs)
   await db.prepare(
     `UPDATE installations SET reviews_this_month = reviews_this_month + 1, updated_at = datetime('now')
      WHERE installation_id = ?`

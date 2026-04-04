@@ -185,7 +185,15 @@ async function handleInstallationEvent(payload: any, env: Env): Promise<Response
 }
 
 async function handleMarketplaceWebhook(request: Request, env: Env): Promise<Response> {
-  const payload = await request.json() as any;
+  // Verify webhook signature (marketplace uses the same secret)
+  const body = await request.text();
+  const signature = request.headers.get('x-hub-signature-256') || '';
+  const valid = await verifyWebhookSignature(env.GITHUB_WEBHOOK_SECRET, body, signature);
+  if (!valid) {
+    return Response.json({ error: 'Invalid signature' }, { status: 401 });
+  }
+
+  const payload = JSON.parse(body) as any;
   const { action, marketplace_purchase: purchase } = payload;
   const account = purchase.account;
 

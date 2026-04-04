@@ -50,7 +50,10 @@ describe('reviewDiff (worker)', () => {
     const callBody = JSON.parse((fetch as any).mock.calls[0][1].body);
     expect(callBody.model).toBe('claude-sonnet-4-6');
     expect(callBody.max_tokens).toBe(4096);
-    expect(callBody.system).toContain('CodeSentri');
+    // System prompt is now an array of objects for prompt caching
+    expect(Array.isArray(callBody.system)).toBe(true);
+    expect(callBody.system[0].text).toContain('CodeSentri');
+    expect(callBody.system[0].cache_control).toEqual({ type: 'ephemeral' });
   });
 
   it('truncates diff when exceeding maxDiffSize', async () => {
