@@ -11,10 +11,12 @@ vi.mock('../handlers.js', () => ({
 
 const mockVerifyAndReceive = vi.fn();
 vi.mock('@octokit/webhooks', () => ({
-  Webhooks: vi.fn().mockImplementation(() => ({
-    on: vi.fn(),
-    verifyAndReceive: (...args: any[]) => mockVerifyAndReceive(...args),
-  })),
+  Webhooks: vi.fn().mockImplementation(function () {
+    return {
+      on: vi.fn(),
+      verifyAndReceive: (...args: any[]) => mockVerifyAndReceive(...args),
+    };
+  }),
 }));
 
 vi.mock('../../config.js', () => ({

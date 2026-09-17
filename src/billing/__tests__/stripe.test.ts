@@ -13,10 +13,12 @@ const mockConstructEvent = vi.fn();
 const mockCheckoutCreate = vi.fn();
 
 vi.mock('stripe', () => ({
-  default: vi.fn().mockImplementation(() => ({
-    webhooks: { constructEvent: (...args: any[]) => mockConstructEvent(...args) },
-    checkout: { sessions: { create: (...args: any[]) => mockCheckoutCreate(...args) } },
-  })),
+  default: vi.fn().mockImplementation(function () {
+    return {
+      webhooks: { constructEvent: (...args: any[]) => mockConstructEvent(...args) },
+      checkout: { sessions: { create: (...args: any[]) => mockCheckoutCreate(...args) } },
+    };
+  }),
 }));
 
 vi.mock('../../config.js', () => ({
